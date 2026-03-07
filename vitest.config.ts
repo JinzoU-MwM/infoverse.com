@@ -10,6 +10,9 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["__tests__/**/*.test.ts"],
+    env: {
+      DATABASE_URL: "./data/infoverse.test.db",
+    },
   },
 });
 
