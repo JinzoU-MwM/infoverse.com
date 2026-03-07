@@ -115,6 +115,7 @@ export async function getArticleBySlug(slug: string): Promise<ArticleDetail | nu
   return {
     ...mapArticleRow(row),
     contentHtml: row.article.contentHtml,
+    contentJson: row.article.contentJson,
     seoTitle: row.article.seoTitle,
     seoDescription: row.article.seoDescription,
     tags: tagRows,

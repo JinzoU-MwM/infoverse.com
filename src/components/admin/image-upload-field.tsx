@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { UploadResponse } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 
-export function ImageUploadField({ initialPath = "" }: { initialPath?: string }) {
+export function ImageUploadField({ initialPath = "", onChangePath }: { initialPath?: string; onChangePath?: (nextPath: string) => void }) {
   const [path, setPath] = useState(initialPath);
   const [status, setStatus] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -31,6 +31,7 @@ export function ImageUploadField({ initialPath = "" }: { initialPath?: string })
     }
 
     setPath(data.path);
+    onChangePath?.(data.path);
     setStatus("Upload complete");
   }
 
@@ -49,7 +50,10 @@ export function ImageUploadField({ initialPath = "" }: { initialPath?: string })
       <Input
         name="featuredImagePath"
         value={path}
-        onChange={(e) => setPath(e.target.value)}
+        onChange={(e) => {
+          setPath(e.target.value);
+          onChangePath?.(e.target.value);
+        }}
         placeholder="/uploads/your-image.jpg"
       />
       {status ? <p className="text-xs text-slate-500">{status}</p> : null}

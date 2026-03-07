@@ -3,6 +3,7 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { ArticleEditorForm } from "@/components/admin/article-editor-form";
 import { requireAdminSession } from "@/lib/auth/session";
 import { getAdminArticleById, listCategories } from "@/lib/content/queries";
+import { ensureArticleDocFromStorage, parseSuggestionItems } from "@/lib/editor/content";
 
 export default async function AdminEditArticlePage({
   params,
@@ -21,6 +22,8 @@ export default async function AdminEditArticlePage({
   ]);
 
   if (!article) notFound();
+  const doc = ensureArticleDocFromStorage(article.contentJson || null, article.contentHtml);
+  const suggestions = parseSuggestionItems(article.suggestionStateJson || "");
 
   return (
     <AdminShell title={`Edit Article: ${article.title}`}>
@@ -37,6 +40,8 @@ export default async function AdminEditArticlePage({
           categoryId: article.categoryId,
           featuredImagePath: article.featuredImagePath || "",
           contentHtml: article.contentHtml,
+          contentJson: JSON.stringify(doc),
+          suggestionStateJson: JSON.stringify(suggestions),
         }}
       />
     </AdminShell>

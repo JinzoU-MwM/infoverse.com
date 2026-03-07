@@ -9,6 +9,11 @@ export const categorySchema = z.object({
   name: z.string().min(2).max(80),
 });
 
+export const articleDocSchema = z.object({
+  type: z.literal("doc"),
+  content: z.array(z.any()).optional(),
+});
+
 export const articleSchema = z.object({
   title: z.string().min(8).max(140),
   categoryId: z.string().min(1),
@@ -17,7 +22,10 @@ export const articleSchema = z.object({
   seoDescription: z.string().max(180).optional().or(z.literal("")),
   featuredImagePath: z.string().max(240).startsWith("/").optional().or(z.literal("")),
   tagCsv: z.string().max(300).optional().or(z.literal("")),
-  contentHtml: z.string().min(20),
+  contentJson: z.string().min(2),
+  contentHtml: z.string().optional().or(z.literal("")),
+  suggestionStateJson: z.string().optional().or(z.literal("")),
+  pendingSuggestions: z.coerce.number().int().min(0).optional(),
 });
 
 export const contactSchema = z.object({

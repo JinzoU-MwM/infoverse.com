@@ -75,6 +75,8 @@ export function ensureDbInitialized() {
       title TEXT NOT NULL,
       slug TEXT NOT NULL UNIQUE,
       content_html TEXT NOT NULL,
+      content_json TEXT,
+      suggestion_state_json TEXT,
       seo_title TEXT,
       seo_description TEXT,
       featured_image_path TEXT,
@@ -122,6 +124,8 @@ export function ensureDbInitialized() {
   ensureColumn("users", "email_verified", "email_verified INTEGER NOT NULL DEFAULT 0");
   ensureColumn("users", "image", "image TEXT");
   ensureColumn("users", "updated_at", "updated_at INTEGER NOT NULL DEFAULT 0");
+  ensureColumn("articles", "content_json", "content_json TEXT");
+  ensureColumn("articles", "suggestion_state_json", "suggestion_state_json TEXT");
   sqliteClient.exec(`
     UPDATE users
     SET updated_at = created_at

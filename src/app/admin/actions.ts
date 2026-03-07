@@ -12,7 +12,8 @@ import {
   signInWithPassword,
   signOutSession,
 } from "@/lib/auth/session";
-import { articleSchema, categorySchema, loginSchema } from "@/lib/validation";
+import { articleDocSchema, articleSchema, categorySchema, loginSchema } from "@/lib/validation";
+import { articleDocToHtml, parseArticleDoc, parseSuggestionItems } from "@/lib/editor/content";
 import { slugify } from "@/lib/utils";
 
 function normalizeCsv(csv: string) {
@@ -170,6 +171,9 @@ export async function saveArticleAction(formData: FormData) {
     featuredImagePath: String(formData.get("featuredImagePath") || ""),
     tagCsv: String(formData.get("tagCsv") || ""),
     contentHtml: String(formData.get("contentHtml") || ""),
+    contentJson: String(formData.get("contentJson") || ""),
+    suggestionStateJson: String(formData.get("suggestionStateJson") || ""),
+    pendingSuggestions: Number(formData.get("pendingSuggestions") || 0),
   };
 
   const parsed = articleSchema.safeParse(payload);
@@ -179,6 +183,29 @@ export async function saveArticleAction(formData: FormData) {
     if (articleId) redirect(computeArticleEditorRedirect(articleId, "draft", "validation"));
     redirect("/admin/articles/new?error=validation");
   }
+  const contentDoc = parseArticleDoc(parsed.data.contentJson);
+  const contentDocValidation = articleDocSchema.safeParse(contentDoc);
+  if (!contentDocValidation.success) {
+    if (articleId) redirect(computeArticleEditorRedirect(articleId, "draft", "validation"));
+    redirect("/admin/articles/new?error=validation");
+  }
+
+  const suggestionItems = parseSuggestionItems(parsed.data.suggestionStateJson || "");
+  const pendingSuggestions =
+    parsed.data.pendingSuggestions ?? suggestionItems.filter((item) => item.status === "pending").length;
+  if (parsed.data.status === "published" && pendingSuggestions > 0) {
+    if (articleId) redirect(computeArticleEditorRedirect(articleId, "draft", "pending-suggestions"));
+    redirect("/admin/articles/new?error=pending-suggestions");
+  }
+
+  const materializedHtml = articleDocToHtml(contentDocValidation.data);
+  const contentTextLength = materializedHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().length;
+  if (contentTextLength < 20) {
+    if (articleId) redirect(computeArticleEditorRedirect(articleId, "draft", "validation"));
+    redirect("/admin/articles/new?error=validation");
+  }
+  const persistedSuggestionState = JSON.stringify(suggestionItems);
+  const persistedContentJson = JSON.stringify(contentDocValidation.data);
 
   const category = db.select({ id: categories.id }).from(categories).where(eq(categories.id, parsed.data.categoryId)).limit(1).get();
   if (!category) {
@@ -203,7 +230,9 @@ export async function saveArticleAction(formData: FormData) {
       .set({
         title: parsed.data.title,
         slug,
-        contentHtml: parsed.data.contentHtml,
+        contentHtml: materializedHtml,
+        contentJson: persistedContentJson,
+        suggestionStateJson: persistedSuggestionState,
         seoTitle: parsed.data.seoTitle || null,
         seoDescription: parsed.data.seoDescription || null,
         featuredImagePath: parsed.data.featuredImagePath || null,
@@ -234,7 +263,9 @@ export async function saveArticleAction(formData: FormData) {
       id: newId,
       title: parsed.data.title,
       slug,
-      contentHtml: parsed.data.contentHtml,
+      contentHtml: materializedHtml,
+      contentJson: persistedContentJson,
+      suggestionStateJson: persistedSuggestionState,
       seoTitle: parsed.data.seoTitle || null,
       seoDescription: parsed.data.seoDescription || null,
       featuredImagePath: parsed.data.featuredImagePath || null,

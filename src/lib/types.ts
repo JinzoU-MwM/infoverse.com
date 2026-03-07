@@ -1,5 +1,25 @@
+import type { JSONContent } from "@tiptap/core";
+
 export type UserRole = "owner" | "editor";
 export type ArticleStatus = "draft" | "published";
+
+export type ArticleContentDoc = JSONContent;
+
+export type SuggestionItem = {
+  id: string;
+  summary: string;
+  beforeDoc: ArticleContentDoc;
+  afterDoc: ArticleContentDoc;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: number;
+};
+
+export type SuggestionState = {
+  items: SuggestionItem[];
+  pendingCount: number;
+};
+
+export type AutosaveState = "idle" | "unsaved" | "saving" | "saved" | "failed";
 
 export type CategorySummary = {
   id: string;
@@ -31,6 +51,7 @@ export type ArticleListItem = {
 
 export type ArticleDetail = ArticleListItem & {
   contentHtml: string;
+  contentJson: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
   tags: Array<{ id: string; slug: string; name: string }>;
@@ -60,12 +81,15 @@ export type AdminArticleMutationPayload = {
   articleId?: string;
   title: string;
   categoryId: string;
+  contentJson: string;
   contentHtml: string;
   seoTitle?: string;
   seoDescription?: string;
   featuredImagePath?: string;
   status: ArticleStatus;
   tagCsv?: string;
+  pendingSuggestions?: number;
+  suggestionStateJson?: string;
 };
 
 export type AdminMutationResult = {
@@ -95,6 +119,8 @@ export type UploadSuccess = {
   path: string;
   mimeType: string;
   size: number;
+  width?: number;
+  height?: number;
 };
 
 export type UploadError = {

@@ -17,7 +17,7 @@ describe("validation", () => {
       title: "short",
       categoryId: "1",
       status: "draft",
-      contentHtml: "<p>Too short</p>",
+      contentJson: JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Too short" }] }] }),
     });
     expect(parsed.success).toBe(false);
   });

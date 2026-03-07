@@ -2,6 +2,7 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { ArticleEditorForm } from "@/components/admin/article-editor-form";
 import { requireAdminSession } from "@/lib/auth/session";
 import { listCategories } from "@/lib/content/queries";
+import { EMPTY_ARTICLE_DOC } from "@/lib/editor/content";
 
 export default async function AdminNewArticlePage({
   searchParams,
@@ -25,7 +26,9 @@ export default async function AdminNewArticlePage({
           tagCsv: "",
           categoryId: categories[0]?.id || "",
           featuredImagePath: "",
-          contentHtml: "",
+          contentHtml: "<p></p>",
+          contentJson: JSON.stringify(EMPTY_ARTICLE_DOC),
+          suggestionStateJson: "[]",
         }}
       />
     </AdminShell>

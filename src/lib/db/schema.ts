@@ -80,6 +80,8 @@ export const articles = sqliteTable("articles", {
   title: text("title").notNull(),
   slug: text("slug").notNull(),
   contentHtml: text("content_html").notNull(),
+  contentJson: text("content_json"),
+  suggestionStateJson: text("suggestion_state_json"),
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),
   featuredImagePath: text("featured_image_path"),
