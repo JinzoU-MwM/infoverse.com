@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db/client";
 import { ensureDbInitialized } from "@/lib/db/init";
 import { articleTags, articles, categories, tags } from "@/lib/db/schema";
+import type { WorkflowStatus } from "@/lib/types";
+import { logActivity } from "@/lib/content/queries";
 import {
   requireAdminSession,
   requireOwnerSession,
@@ -315,4 +317,48 @@ export async function publishArticleAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/search");
   redirect("/admin?published=1");
+}
+
+export async function updateArticleStatusAction(formData: FormData): Promise<void> {
+  const session = await requireAdminSession();
+  ensureDbInitialized();
+
+  const articleId = String(formData.get("articleId") || "").trim();
+  const status = formData.get("status") as WorkflowStatus | null;
+
+  if (!articleId || !status) {
+    redirect("/admin?alert=missing");
+    return;
+  }
+
+  const article = db.select().from(articles).where(eq(articles.id, articleId)).limit(1).get();
+
+  if (!article) {
+    redirect("/admin?alert=notfound");
+    return;
+  }
+
+  const now = Date.now();
+  const updateData: Partial<typeof articles.$inferInsert> = {
+    status,
+    updatedAt: now,
+  };
+
+  if (status === "published" && !article.publishedAt) {
+    updateData.publishedAt = now;
+  }
+
+  db.update(articles).set(updateData).where(eq(articles.id, articleId)).run();
+
+  await logActivity(db, {
+    articleId,
+    actorId: session.userId,
+    type: status === "published" ? "published" : status === "review" ? "submitted" : "edited",
+    summary: `Status changed to ${status}`,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath("/search");
+  redirect("/admin");
 }
