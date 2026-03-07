@@ -1,9 +1,12 @@
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import { db } from "@/lib/db/client";
 import { ensureDbInitialized } from "@/lib/db/init";
-import { articleTags, articles, categories, tags, users } from "@/lib/db/schema";
-import type { ArticleDetail, ArticleListItem, CategorySummary, SearchResultItem } from "@/lib/types";
+import { activityLogs, articleTags, articles, categories, tags, users } from "@/lib/db/schema";
+import type { ActivityLogEntry, ActivityType, ArticleDetail, ArticleListItem, ArticleWorkflowCard, CategorySummary, SearchResultItem, WorkflowStatus } from "@/lib/types";
 import { excerptFromHtml, slugify } from "@/lib/utils";
+
+export type DrizzleDb = typeof db;
 
 function mapArticleRow(row: {
   article: typeof articles.$inferSelect;
@@ -355,4 +358,186 @@ export async function adminMetrics() {
       tone: (published?.count ?? 0) > 20 ? ("critical" as const) : ("default" as const),
     },
   ];
+}
+
+// Activity Log Functions
+
+export async function logActivity(
+  db: DrizzleDb,
+  data: {
+    articleId: string;
+    actorId: string;
+    type: ActivityType;
+    summary: string;
+    metadata?: Record<string, unknown>;
+  }
+): Promise<void> {
+  await db.insert(activityLogs).values({
+    articleId: data.articleId,
+    actorId: data.actorId,
+    type: data.type,
+    summary: data.summary,
+    metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+  });
+}
+
+export async function getRecentActivity(
+  db: DrizzleDb,
+  limit = 20
+): Promise<Array<ActivityLogEntry>> {
+  const rows = await db
+    .select({
+      id: activityLogs.id,
+      articleId: activityLogs.articleId,
+      articleTitle: articles.title,
+      actorId: activityLogs.actorId,
+      actorName: users.name,
+      type: activityLogs.type,
+      summary: activityLogs.summary,
+      metadata: activityLogs.metadata,
+      createdAt: activityLogs.createdAt,
+    })
+    .from(activityLogs)
+    .innerJoin(articles, eq(activityLogs.articleId, articles.id))
+    .innerJoin(users, eq(activityLogs.actorId, users.id))
+    .orderBy(desc(activityLogs.createdAt))
+    .limit(limit);
+
+  return rows.map((row) => ({
+    id: row.id,
+    articleId: row.articleId,
+    articleTitle: row.articleTitle,
+    actorId: row.actorId,
+    actorName: row.actorName,
+    type: row.type as ActivityType,
+    summary: row.summary,
+    metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+    createdAt: row.createdAt.getTime(),
+  }));
+}
+
+// Workflow Queries
+
+export async function getArticlesByStatus(
+  db: DrizzleDb,
+  status: WorkflowStatus
+): Promise<Array<ArticleWorkflowCard>> {
+  const assignees = alias(users, "assignees");
+
+  const rows = await db
+    .select({
+      id: articles.id,
+      title: articles.title,
+      slug: articles.slug,
+      status: articles.status,
+      categoryName: categories.name,
+      authorName: users.name,
+      assigneeId: articles.assigneeId,
+      assigneeName: assignees.name,
+      deadline: articles.deadline,
+      contentJson: articles.contentJson,
+      seoTitle: articles.seoTitle,
+      seoDescription: articles.seoDescription,
+      updatedAt: articles.updatedAt,
+    })
+    .from(articles)
+    .innerJoin(categories, eq(articles.categoryId, categories.id))
+    .innerJoin(users, eq(articles.authorId, users.id))
+    .leftJoin(assignees, eq(articles.assigneeId, assignees.id))
+    .where(eq(articles.status, status))
+    .orderBy(desc(articles.updatedAt));
+
+  return rows.map((row) => {
+    const wordCount = getWordCountFromJson(row.contentJson);
+    return {
+      id: row.id,
+      title: row.title,
+      slug: row.slug,
+      status: row.status as WorkflowStatus,
+      categoryName: row.categoryName,
+      authorName: row.authorName,
+      assigneeId: row.assigneeId,
+      assigneeName: row.assigneeName,
+      deadline: row.deadline?.getTime() ?? null,
+      readTime: Math.max(1, Math.round(wordCount / 200)),
+      progress: calculateProgress(row),
+      updatedAt: row.updatedAt,
+    };
+  });
+}
+
+function getWordCountFromJson(json: string | null): number {
+  if (!json) return 0;
+  try {
+    const doc = JSON.parse(json);
+    const text = extractTextFromDoc(doc);
+    return text.trim() ? text.trim().split(/\s+/).length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function extractTextFromDoc(node: unknown): string {
+  if (!node || typeof node !== "object") return "";
+  const typed = node as { text?: string; content?: unknown[] };
+  const parts: string[] = [];
+  if (typeof typed.text === "string") parts.push(typed.text);
+  if (Array.isArray(typed.content)) {
+    for (const child of typed.content) {
+      parts.push(extractTextFromDoc(child));
+    }
+  }
+  return parts.join(" ");
+}
+
+function calculateProgress(row: { title: string; contentJson: string | null; seoTitle: string | null; seoDescription: string | null }): number {
+  let score = 0;
+  const total = 4;
+
+  if (row.title.length >= 8) score++;
+  if (getWordCountFromJson(row.contentJson) >= 100) score++;
+  if (row.seoTitle && row.seoTitle.length > 0) score++;
+  if (row.seoDescription && row.seoDescription.length > 0) score++;
+
+  return Math.round((score / total) * 100);
+}
+
+// Dashboard Stats
+
+export async function getDashboardStats(db: DrizzleDb): Promise<{
+  total: number;
+  drafts: number;
+  inReview: number;
+  dueToday: number;
+  publishedThisWeek: number;
+}> {
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+
+  const startOfWeekTs = startOfWeek.getTime();
+
+  const [totalResult] = await db.select({ count: count() }).from(articles);
+  const [draftsResult] = await db.select({ count: count() }).from(articles).where(eq(articles.status, "draft"));
+  const [inReviewResult] = await db.select({ count: count() }).from(articles).where(eq(articles.status, "review"));
+  const [dueTodayResult] = await db
+    .select({ count: count() })
+    .from(articles)
+    .where(and(isNotNull(articles.deadline), lte(articles.deadline, endOfToday), gte(articles.deadline, startOfWeek)));
+  const [publishedThisWeekResult] = await db
+    .select({ count: count() })
+    .from(articles)
+    .where(and(eq(articles.status, "published"), gte(articles.publishedAt, startOfWeekTs)));
+
+  return {
+    total: totalResult.count,
+    drafts: draftsResult.count,
+    inReview: inReviewResult.count,
+    dueToday: dueTodayResult.count,
+    publishedThisWeek: publishedThisWeekResult.count,
+  };
 }
