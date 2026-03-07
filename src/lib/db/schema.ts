@@ -85,14 +85,19 @@ export const articles = sqliteTable("articles", {
   seoTitle: text("seo_title"),
   seoDescription: text("seo_description"),
   featuredImagePath: text("featured_image_path"),
-  status: text("status", { enum: ["draft", "published"] }).notNull().default("draft"),
+  status: text("status", { enum: ["draft", "review", "approved", "published"] }).notNull().default("draft"),
   categoryId: text("category_id").notNull().references(() => categories.id),
   authorId: text("author_id").notNull().references(() => users.id),
+  assigneeId: text("assignee_id").references(() => users.id),
+  deadline: integer("deadline", { mode: "timestamp_ms" }),
   createdAt: integer("created_at").notNull().default(sql`(unixepoch('subsec') * 1000)`),
   updatedAt: integer("updated_at").notNull().default(sql`(unixepoch('subsec') * 1000)`),
   publishedAt: integer("published_at"),
 }, (table) => ({
   articleSlugIdx: uniqueIndex("articles_slug_uq").on(table.slug),
+  articleAssigneeIdx: index("articles_assignee_id_idx").on(table.assigneeId),
+  articleStatusIdx: index("articles_status_idx").on(table.status),
+  articleDeadlineIdx: index("articles_deadline_idx").on(table.deadline),
 }));
 
 export const tags = sqliteTable("tags", {
@@ -123,11 +128,26 @@ export const mediaAssets = sqliteTable("media_assets", {
   createdAt: integer("created_at").notNull().default(sql`(unixepoch('subsec') * 1000)`),
 });
 
+export const activityLogs = sqliteTable("activity_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  articleId: text("article_id").notNull().references(() => articles.id, { onDelete: "cascade" }),
+  actorId: text("actor_id").notNull().references(() => users.id),
+  type: text("type", { enum: ["created", "edited", "submitted", "approved", "published", "deleted", "assigned", "commented", "scheduled"] }).notNull(),
+  summary: text("summary").notNull(),
+  metadata: text("metadata"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(sql`(unixepoch('subsec') * 1000)`),
+}, (table) => ({
+  activityArticleIdx: index("activity_logs_article_id_idx").on(table.articleId),
+  activityActorIdx: index("activity_logs_actor_id_idx").on(table.actorId),
+  activityCreatedAtIdx: index("activity_logs_created_at_idx").on(table.createdAt),
+}));
+
 export const usersRelations = relations(users, ({ many }) => ({
   articles: many(articles),
   uploads: many(mediaAssets),
   sessions: many(sessions),
   accounts: many(accounts),
+  activityLogs: many(activityLogs),
 }));
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -157,7 +177,12 @@ export const articlesRelations = relations(articles, ({ one, many }) => ({
     fields: [articles.categoryId],
     references: [categories.id],
   }),
+  assignee: one(users, {
+    fields: [articles.assigneeId],
+    references: [users.id],
+  }),
   tagLinks: many(articleTags),
+  activityLogs: many(activityLogs),
 }));
 
 export const tagsRelations = relations(tags, ({ many }) => ({
@@ -175,6 +200,18 @@ export const articleTagsRelations = relations(articleTags, ({ one }) => ({
   }),
 }));
 
+export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
+  article: one(articles, {
+    fields: [activityLogs.articleId],
+    references: [articles.id],
+  }),
+  actor: one(users, {
+    fields: [activityLogs.actorId],
+    references: [users.id],
+  }),
+}));
+
 export type DbUser = typeof users.$inferSelect;
 export type DbCategory = typeof categories.$inferSelect;
 export type DbArticle = typeof articles.$inferSelect;
+export type DbActivityLog = typeof activityLogs.$inferSelect;
