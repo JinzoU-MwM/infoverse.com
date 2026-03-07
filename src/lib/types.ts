@@ -1,7 +1,67 @@
 import type { JSONContent } from "@tiptap/core";
 
 export type UserRole = "owner" | "editor";
-export type ArticleStatus = "draft" | "published";
+export type WorkflowStatus = "draft" | "review" | "approved" | "published";
+export type ArticleStatus = WorkflowStatus;
+
+export type ActivityType =
+  | "created"
+  | "edited"
+  | "submitted"
+  | "approved"
+  | "published"
+  | "deleted"
+  | "assigned"
+  | "commented"
+  | "scheduled";
+
+export type ActivityLogEntry = {
+  id: string;
+  articleId: string;
+  articleTitle: string;
+  actorId: string;
+  actorName: string;
+  type: ActivityType;
+  summary: string;
+  metadata?: Record<string, unknown>;
+  createdAt: number;
+};
+
+export type ArticleWorkflowCard = {
+  id: string;
+  title: string;
+  slug: string;
+  status: WorkflowStatus;
+  categoryName: string;
+  authorName: string;
+  assigneeId: string | null;
+  assigneeName: string | null;
+  deadline: number | null;
+  readTime: number;
+  progress: number;
+  updatedAt: number;
+};
+
+export type ToastTone = "success" | "error" | "warning" | "info";
+
+export type Toast = {
+  id: string;
+  tone: ToastTone;
+  message: string;
+  description?: string;
+  action?: { label: string; href: string };
+  dismissible: boolean;
+  createdAt: number;
+};
+
+export type SlashCommandItem = {
+  id: string;
+  label: string;
+  description: string;
+  keywords: string[];
+  icon: string;
+  action: () => void;
+};
 
 export type ArticleContentDoc = JSONContent;
 
