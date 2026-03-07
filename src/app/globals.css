@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+:root {
+  --iv-blue: #1a73e8;
+  --iv-navy: #0f172a;
+  --iv-cyan: #06b6d4;
+  --iv-bg: #f8fafc;
+  --iv-text: #111827;
+  --iv-muted: #6b7280;
+}
+
+html,
+body {
+  background: var(--iv-bg);
+  color: var(--iv-text);
+}
+
+body {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.iv-shell {
+  margin-inline: auto;
+  width: min(1280px, calc(100% - 2rem));
+}
+
+.iv-card {
+  border: 1px solid #d7dfea;
+  border-radius: 14px;
+  background: white;
+}
+
+.iv-ad-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 2px dashed var(--iv-blue);
+  background: #ecf3ff;
+  color: var(--iv-blue);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.iv-gradient-hero {
+  background: linear-gradient(145deg, var(--iv-navy), var(--iv-blue));
+  color: #f8fafc;
+}
+
+.iv-admin-bg {
+  background: #f1f5f9;
+}
+
+.iv-input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.iv-btn {
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.iv-btn-primary {
+  background: var(--iv-blue);
+  color: white;
+}
+
+.iv-btn-secondary {
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #334155;
+}
