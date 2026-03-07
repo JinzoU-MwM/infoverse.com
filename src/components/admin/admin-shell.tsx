@@ -12,11 +12,14 @@ export function AdminShell({ children, title }: { children: React.ReactNode; tit
           </h2>
           <p className="mb-3 text-xs text-slate-400">Admin Shell</p>
           <nav className="space-y-2 text-sm">
-            <Link className="block rounded-md bg-blue-600 px-3 py-2" href="/admin">
+            <Link className="block rounded-md bg-slate-800 px-3 py-2 hover:bg-slate-700" href="/admin">
               Dashboard
             </Link>
-            <Link className="block rounded-md bg-slate-800 px-3 py-2" href="/admin/articles/new">
+            <Link className="block rounded-md bg-slate-800 px-3 py-2 hover:bg-slate-700" href="/admin/editor/new">
               New Article
+            </Link>
+            <Link className="block rounded-md bg-slate-800 px-3 py-2 hover:bg-slate-700" href="/admin/articles/new">
+              Legacy Editor
             </Link>
           </nav>
           <form action={logoutAction} className="mt-3">
