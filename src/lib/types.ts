@@ -190,3 +190,16 @@ export type UploadError = {
 };
 
 export type UploadResponse = UploadSuccess | UploadError;
+
+export type EditorValues = {
+  articleId?: string;
+  title: string;
+  seoTitle: string;
+  seoDescription: string;
+  tagCsv: string;
+  categoryId: string;
+  featuredImagePath: string;
+  contentHtml: string;
+  contentJson: string;
+  suggestionStateJson?: string;
+};
