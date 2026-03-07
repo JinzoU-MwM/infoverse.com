@@ -126,6 +126,9 @@ export function ensureDbInitialized() {
   ensureColumn("users", "updated_at", "updated_at INTEGER NOT NULL DEFAULT 0");
   ensureColumn("articles", "content_json", "content_json TEXT");
   ensureColumn("articles", "suggestion_state_json", "suggestion_state_json TEXT");
+  ensureColumn("articles", "assignee_id", "assignee_id TEXT REFERENCES users(id)");
+  ensureColumn("articles", "deadline", "deadline INTEGER");
+  ensureColumn("articles", "progress", "progress INTEGER DEFAULT 0");
   sqliteClient.exec(`
     UPDATE users
     SET updated_at = created_at

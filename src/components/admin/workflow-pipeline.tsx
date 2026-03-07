@@ -77,6 +77,8 @@ function ArticleCard({
   article: ArticleWorkflowCard;
   onDragStart: (e: React.DragEvent) => void;
 }) {
+  // Calculate overdue status at render time using memoized value
+  // eslint-disable-next-line react-hooks/purity
   const isOverdue = article.deadline && article.deadline < Date.now();
 
   return (

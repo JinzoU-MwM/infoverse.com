@@ -62,7 +62,7 @@ function ActivityItem({ activity }: { activity: ActivityLogEntry }) {
         <p className="text-sm text-slate-700">
           <span className="font-medium">@{activity.actorName}</span>{" "}
           <span>{getActivityVerb(activity.type)}</span>{" "}
-          <span className="font-medium text-slate-900">"{truncate(activity.articleTitle, 30)}"</span>
+          <span className="font-medium text-slate-900">&ldquo;{truncate(activity.articleTitle, 30)}&rdquo;</span>
         </p>
         <p className="mt-0.5 text-xs text-slate-500">{formatTimeAgo(activity.createdAt)}</p>
       </div>

@@ -39,7 +39,8 @@ export type SlashCommandItem = {
   action: SlashCommandAction;
 };
 
-export function getSlashCommandItems(editor: unknown): SlashCommandItem[] {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function getSlashCommandItems(_editor: unknown): SlashCommandItem[] {
   return [
     {
       id: "paragraph",

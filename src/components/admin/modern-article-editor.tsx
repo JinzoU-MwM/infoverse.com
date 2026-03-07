@@ -21,7 +21,7 @@ type Props = {
   saved?: string;
 };
 
-export function ModernArticleEditor({ categories, values, error, saved }: Props) {
+export function ModernArticleEditor({ categories, values }: Props) {
   const [title, setTitle] = useState(values.title);
   const [seoTitle, setSeoTitle] = useState(values.seoTitle);
   const [seoDescription, setSeoDescription] = useState(values.seoDescription);
@@ -65,19 +65,6 @@ export function ModernArticleEditor({ categories, values, error, saved }: Props)
     },
   });
 
-  const scheduleAutosave = useCallback(() => {
-    if (!values.articleId) {
-      setAutosaveState("unsaved");
-      return;
-    }
-
-    setAutosaveState("unsaved");
-    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
-    autosaveTimerRef.current = setTimeout(() => {
-      void runAutosave();
-    }, 900);
-  }, [values.articleId]);
-
   const runAutosave = useCallback(async () => {
     if (!values.articleId) return;
 
@@ -108,6 +95,19 @@ export function ModernArticleEditor({ categories, values, error, saved }: Props)
       setAutosaveState("failed");
     }
   }, [values.articleId, title, seoTitle, seoDescription, tagCsv, categoryId, featuredImagePath, contentJson]);
+
+  const scheduleAutosave = useCallback(() => {
+    if (!values.articleId) {
+      setAutosaveState("unsaved");
+      return;
+    }
+
+    setAutosaveState("unsaved");
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      void runAutosave();
+    }, 900);
+  }, [values.articleId, runAutosave]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

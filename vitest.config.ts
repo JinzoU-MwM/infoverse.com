@@ -13,6 +13,10 @@ export default defineConfig({
     env: {
       DATABASE_URL: "./data/infoverse.test.db",
     },
+    // Override environment for specific test files that need DOM
+    environmentMatchGlobs: [
+      ["__tests__/editor-content.test.ts", "happy-dom"],
+    ],
   },
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import type { SlashCommandItem } from "@/lib/editor/slash-commands";
 
 type Props = {
@@ -10,21 +10,26 @@ type Props = {
 };
 
 export function SlashCommandMenu({ items: initialItems, command, clientRect }: Props) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
   const [query, setQuery] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const filteredItems = query
-    ? initialItems.filter(
-        (item) =>
-          item.title.toLowerCase().includes(query.toLowerCase()) ||
-          item.keywords.some((k) => k.includes(query.toLowerCase()))
-      )
-    : initialItems;
+  const filteredItems = useMemo(() => {
+    return query
+      ? initialItems.filter(
+          (item) =>
+            item.title.toLowerCase().includes(query.toLowerCase()) ||
+            item.keywords.some((k) => k.includes(query.toLowerCase()))
+        )
+      : initialItems;
+  }, [query, initialItems]);
 
-  useEffect(() => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Reset selectedIndex when query changes
+  function handleQueryChange(newQuery: string) {
+    setQuery(newQuery);
     setSelectedIndex(0);
-  }, [query]);
+  }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -73,7 +78,7 @@ export function SlashCommandMenu({ items: initialItems, command, clientRect }: P
           placeholder="Search commands..."
           className="w-full rounded border border-slate-200 px-2 py-1 text-sm outline-none focus:border-slate-400"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => handleQueryChange(e.target.value)}
           autoFocus
         />
       </div>
